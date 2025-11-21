@@ -1,73 +1,167 @@
-# .
+# Vue Test App 🚀
 
-This template should help get you started developing with Vue 3 in Vite.
+Un proyecto de Vue.js creado para aprender Vue 3, TypeScript y testing con Playwright.
 
-## Recommended IDE Setup
+## 📋 Características
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- **Vue 3** con Composition API
+- **TypeScript** para type safety
+- **Vite** como bundler moderno y rápido
+- **Vue Router** para navegación entre páginas
+- **Pinia** para state management
+- **Playwright** para testing E2E
+- **ESLint** para linting de código
+- **Vitest** para unit testing
 
-## Recommended Browser Setup
+## 🎯 Funcionalidades Implementadas
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### 📄 Páginas
+- **Home** - Página principal con componente HelloWorld
+- **About** - Página informativa básica
+- **Counter** - Contador interactivo con funcionalidades:
+  - Incrementar/decrementar
+  - Reset a cero
+  - Validación (no permite valores negativos)
+  - Mensaje de logro al llegar a 10
+- **Todos** - Lista de tareas con:
+  - Agregar nuevas tareas
+  - Marcar como completadas
+  - Eliminar tareas individuales
+  - Limpiar todas las completadas
+  - Estado vacío cuando no hay tareas
 
-## Type Support for `.vue` Imports in TS
+### 🧩 Componentes
+- **TheHeader** - Navegación principal (preparado para futuro uso)
+- **TheFooter** - Footer con enlaces (preparado para futuro uso)
+- **HelloWorld** - Componente de bienvenida original
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+### 🗄️ Store (Pinia)
+- **TodoStore** - Maneja el estado de las tareas:
+  - CRUD completo de todos
+  - Computed properties para estadísticas
+  - Estado persistente durante la sesión
 
-## Customize configuration
+## 🛠️ Configuración del Proyecto
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### Prerequisitos
+- Node.js 22+ (requerido para Vite 7+)
+- npm o pnpm
 
-## Project Setup
+### Instalación
+```bash
+# Clonar el repositorio
+git clone https://github.com/nachodmedina/vue-test.git
+cd vue-test
 
-```sh
+# Instalar dependencias
 npm install
 ```
 
-### Compile and Hot-Reload for Development
-
-```sh
+### Desarrollo
+```bash
+# Servidor de desarrollo con hot-reload
 npm run dev
 ```
+El proyecto estará disponible en `http://localhost:5173/`
 
-### Type-Check, Compile and Minify for Production
-
-```sh
+### Build para Producción
+```bash
+# Verificar tipos y construir
 npm run build
+
+# Preview del build de producción
+npm run preview
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+## 🧪 Testing
 
-```sh
+### Tests E2E con Playwright
+```bash
+# Instalar navegadores de Playwright (solo la primera vez)
+npx playwright install
+
+# Ejecutar todos los tests
+npm run test:e2e
+
+# Ejecutar tests específicos
+npx playwright test navigation.spec.ts
+npx playwright test counter.spec.ts
+npx playwright test todos.spec.ts
+
+# Ejecutar con un solo worker (menos ventanas)
+npx playwright test --workers=1
+
+# Ver reporte HTML de resultados
+npx playwright show-report
+```
+
+### Tests Unitarios
+```bash
+# Ejecutar tests unitarios con Vitest
 npm run test:unit
 ```
 
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
-
-```sh
-# Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-npm run build
-
-# Runs the end-to-end tests
-npm run test:e2e
-# Runs the tests only on Chromium
-npm run test:e2e -- --project=chromium
-# Runs the tests of a specific file
-npm run test:e2e -- tests/example.spec.ts
-# Runs the tests in debug mode
-npm run test:e2e -- --debug
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
+### Linting
+```bash
+# Ejecutar ESLint
 npm run lint
 ```
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── components/          # Componentes reutilizables
+│   ├── HelloWorld.vue
+│   ├── TheHeader.vue    # (preparado para futuro)
+│   └── TheFooter.vue    # (preparado para futuro)
+├── views/              # Páginas/Vistas
+│   ├── HomeView.vue
+│   ├── AboutView.vue
+│   ├── CounterView.vue
+│   └── TodosView.vue
+├── stores/             # Pinia stores
+│   ├── counter.ts      # (generado automáticamente)
+│   └── todos.ts        # Store personalizado
+├── router/             # Configuración de rutas
+│   └── index.ts
+├── assets/             # Archivos estáticos
+└── main.ts             # Punto de entrada
+
+e2e/                    # Tests End-to-End
+├── navigation.spec.ts  # Tests de navegación
+├── counter.spec.ts     # Tests del contador
+├── todos.spec.ts       # Tests de la lista de tareas
+└── vue.spec.ts         # Test básico original
+```
+
+## 🎮 Funcionalidades de Testing
+
+### Cobertura de Tests
+- ✅ **Navegación** - Entre todas las páginas
+- ✅ **Counter** - Todas las operaciones y validaciones
+- ✅ **Todos** - CRUD completo y estados edge case
+- ✅ **UI Components** - Elementos interactivos
+
+### Estrategias de Testing Implementadas
+- **Data-testid attributes** para selectores estables
+- **Page Object Model** implícito en la organización
+- **Hooks beforeEach** para setup consistente
+- **Expectations específicas** por funcionalidad
+- **Cleanup automático** entre tests
+
+## 📚 Recursos de Aprendizaje
+
+- [Vue.js Documentation](https://vuejs.org/)
+- [Vite Guide](https://vitejs.dev/)
+- [Pinia Documentation](https://pinia.vuejs.org/)
+- [Playwright Documentation](https://playwright.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/)
+
+## 🤝 Contribuciones
+
+Este es un proyecto de aprendizaje personal. Si tienes sugerencias o mejoras, ¡son bienvenidas!
+
+---
+
+**Creado con ❤️ para aprender Vue.js y testing moderno**
