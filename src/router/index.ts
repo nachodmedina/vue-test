@@ -27,6 +27,11 @@ const router = createRouter({
       name: 'todos',
       component: () => import('../views/TodosView.vue'),
     },
+    {
+      path: '/users',
+      name: 'users',
+      component: () => import('../views/UsersView.vue'),
+    },
   ],
 })
 
