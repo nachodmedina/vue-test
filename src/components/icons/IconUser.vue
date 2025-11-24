@@ -12,3 +12,7 @@
     <circle cx="12" cy="7" r="4" />
   </svg>
 </template>
+
+<script setup lang="ts">
+// IconUser component for user-related actions
+</script>

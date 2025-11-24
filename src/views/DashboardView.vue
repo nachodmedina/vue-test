@@ -9,7 +9,7 @@
       <div class="stats-grid">
         <div class="stat-card">
           <h3>Tareas</h3>
-          <p class="stat-number">{{ todosStore.total }}</p>
+          <p class="stat-number">{{ todoStore.totalTodos }}</p>
           <router-link to="/todos" class="stat-link">Ver todas →</router-link>
         </div>
         
@@ -50,11 +50,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useTodosStore } from '@/stores/todos'
+import { useTodoStore } from '@/stores/todos'
 import { useUsersStore } from '@/stores/users'
 
 const authStore = useAuthStore()
-const todosStore = useTodosStore()
+const todoStore = useTodoStore()
 const usersStore = useUsersStore()
 const counterValue = ref(0)
 
