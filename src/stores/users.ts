@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useApi } from '@/composables/useApi'
 
 export interface User {
   id: number
@@ -31,22 +32,26 @@ export const useUsersStore = defineStore('users', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  const api = useApi()
+
   // Actions
   const fetchUsers = async () => {
     isLoading.value = true
     error.value = null
     
     try {
-      const response = await fetch('https://jsonplaceholder.typicode.com/users')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      // Intentar primero desde nuestra API (si está disponible)
+      try {
+        const data = await api.get<User[]>('/users')
+        users.value = data
+      } catch (apiError) {
+        // Fallback a JSONPlaceholder si nuestra API no está disponible
+        console.info('API no disponible, usando JSONPlaceholder como fallback')
+        const data = await api.get<User[]>('https://jsonplaceholder.typicode.com/users', { requiresAuth: false })
+        users.value = data
       }
-      
-      const data = await response.json()
-      users.value = data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Error desconocido'
+    } catch (err: any) {
+      error.value = err?.message || 'Error al cargar usuarios'
       console.error('Error fetching users:', err)
     } finally {
       isLoading.value = false
@@ -58,16 +63,18 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null
     
     try {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`)
-      
-      if (!response.ok) {
-        throw new Error(`Usuario no encontrado (${response.status})`)
+      // Intentar primero desde nuestra API
+      try {
+        const data = await api.get<User>(`/users/${id}`)
+        selectedUser.value = data
+      } catch (apiError) {
+        // Fallback a JSONPlaceholder
+        console.info('API no disponible, usando JSONPlaceholder como fallback')
+        const data = await api.get<User>(`https://jsonplaceholder.typicode.com/users/${id}`, { requiresAuth: false })
+        selectedUser.value = data
       }
-      
-      const data = await response.json()
-      selectedUser.value = data
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Error desconocido'
+    } catch (err: any) {
+      error.value = err?.message || 'Error al cargar usuario'
       selectedUser.value = null
       console.error('Error fetching user:', err)
     } finally {

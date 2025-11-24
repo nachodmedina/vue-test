@@ -1,5 +1,45 @@
 @import './base.css';
 
+/* Ocultar contenido hasta que la autenticación esté lista */
+.app-loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-ready {
+  opacity: 1;
+  transition: opacity 0.1s ease;
+}
+
+/* Ocultar completamente el router-view hasta estar listo */
+#app:not(.auth-ready) main {
+  display: none;
+}
+
+#app:not(.auth-ready) header {
+  display: none;
+}
+
+/* Solo mostrar login cuando esté en página de login */
+#app.show-login .login-container,
+#app.show-login .register-container {
+  display: flex;
+}
+
+#app:not(.show-login) .login-container,
+#app:not(.show-login) .register-container {
+  display: none;
+}
+
+/* Asegurar scroll en páginas de auth */
+#app.show-login {
+  height: 100vh;
+  overflow-y: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
