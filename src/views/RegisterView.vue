@@ -15,31 +15,18 @@
 
         <form @submit.prevent="handleRegister" class="retro-form">
           <div class="retro-form-group">
-            <label class="retro-label">FIRST NAME:</label>
+            <label class="retro-label">USERNAME:</label>
             <input 
-              v-model="registerData.firstName"
+              v-model="registerData.username"
               type="text" 
               class="retro-input"
-              :class="{ 'retro-input--error': errors.firstName }"
-              placeholder="Enter first name..."
+              :class="{ 'retro-input--error': errors.username }"
+              placeholder="Enter username..."
               required 
             />
-            <span v-if="errors.firstName" class="retro-error-text">{{ errors.firstName }}</span>
+            <span v-if="errors.username" class="retro-error-text">{{ errors.username }}</span>
           </div>
 
-          <div class="retro-form-group">
-            <label class="retro-label">LAST NAME:</label>
-            <input 
-              v-model="registerData.lastName"
-              type="text" 
-              class="retro-input"
-              :class="{ 'retro-input--error': errors.lastName }"
-              placeholder="Enter last name..."
-              required 
-            />
-            <span v-if="errors.lastName" class="retro-error-text">{{ errors.lastName }}</span>
-          </div>
-          
           <div class="retro-form-group">
             <label class="retro-label">EMAIL:</label>
             <input 
@@ -52,6 +39,18 @@
             />
             <span v-if="errors.email" class="retro-error-text">{{ errors.email }}</span>
           </div>
+
+          <div class="retro-form-group">
+            <label class="retro-label">FULL NAME (OPTIONAL):</label>
+            <input 
+              v-model="registerData.full_name"
+              type="text" 
+              class="retro-input"
+              :class="{ 'retro-input--error': errors.full_name }"
+              placeholder="Enter full name..."
+            />
+            <span v-if="errors.full_name" class="retro-error-text">{{ errors.full_name }}</span>
+          </div>
           
           <div class="retro-form-group">
             <label class="retro-label">PASSWORD:</label>
@@ -61,6 +60,7 @@
               class="retro-input"
               :class="{ 'retro-input--error': errors.password }"
               placeholder="Enter password..."
+              maxlength="72"
               required 
             />
             <span v-if="errors.password" class="retro-error-text">{{ errors.password }}</span>
@@ -74,6 +74,7 @@
               class="retro-input"
               :class="{ 'retro-input--error': errors.confirmPassword }"
               placeholder="Confirm password..."
+              maxlength="72"
               required 
             />
             <span v-if="errors.confirmPassword" class="retro-error-text">{{ errors.confirmPassword }}</span>
@@ -119,14 +120,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import type { RegisterData } from '@/types/auth'
 
 interface ValidationErrors {
-  firstName?: string
-  lastName?: string
+  username?: string
   email?: string
+  full_name?: string
   password?: string
   confirmPassword?: string
   acceptTerms?: string
@@ -138,9 +139,9 @@ const matrixCanvas = ref<HTMLCanvasElement | null>(null)
 let animationId: number | null = null
 
 const registerData = ref<RegisterData>({
-  firstName: '',
-  lastName: '',
+  username: '',
   email: '',
+  full_name: '',
   password: '',
   confirmPassword: '',
   acceptTerms: false
@@ -151,14 +152,13 @@ const errors = ref<ValidationErrors>({})
 const validateForm = (): boolean => {
   errors.value = {}
 
-  // Validar firstName
-  if (!registerData.value.firstName.trim()) {
-    errors.value.firstName = 'First name is required'
-  }
-
-  // Validar lastName
-  if (!registerData.value.lastName.trim()) {
-    errors.value.lastName = 'Last name is required'
+  // Validar username
+  if (!registerData.value.username.trim()) {
+    errors.value.username = 'Username is required'
+  } else if (registerData.value.username.length < 3) {
+    errors.value.username = 'Username must be at least 3 characters'
+  } else if (registerData.value.username.length > 50) {
+    errors.value.username = 'Username must be less than 50 characters'
   }
 
   // Validar email
@@ -173,6 +173,8 @@ const validateForm = (): boolean => {
     errors.value.password = 'Password is required'
   } else if (registerData.value.password.length < 6) {
     errors.value.password = 'Password must be at least 6 characters'
+  } else if (registerData.value.password.length > 72) {
+    errors.value.password = 'Password must be less than 72 characters'
   }
 
   // Validar confirmPassword
@@ -191,15 +193,17 @@ const validateForm = (): boolean => {
 }
 
 const isFormValid = computed(() => {
-  return registerData.value.firstName.trim() !== '' &&
-         registerData.value.lastName.trim() !== '' &&
+  return registerData.value.username.trim() !== '' &&
+         registerData.value.username.length >= 3 &&
+         registerData.value.username.length <= 50 &&
          registerData.value.email.trim() !== '' &&
          registerData.value.password !== '' &&
+         registerData.value.password.length >= 6 &&
+         registerData.value.password.length <= 72 &&
          registerData.value.confirmPassword !== '' &&
          registerData.value.password === registerData.value.confirmPassword &&
          registerData.value.acceptTerms &&
-         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.value.email) &&
-         registerData.value.password.length >= 6
+         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerData.value.email)
 })
 
 const handleRegister = async () => {
@@ -209,10 +213,10 @@ const handleRegister = async () => {
 
   try {
     await authStore.register({
-      firstName: registerData.value.firstName,
-      lastName: registerData.value.lastName,
+      username: registerData.value.username,
       email: registerData.value.email,
       password: registerData.value.password,
+      full_name: registerData.value.full_name || undefined,
       confirmPassword: registerData.value.confirmPassword,
       acceptTerms: registerData.value.acceptTerms
     })

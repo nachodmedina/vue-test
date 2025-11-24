@@ -1,17 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, readonly } from 'vue'
 import type { User, LoginCredentials, RegisterData, TwoFactorData, AuthResponse } from '@/types/auth'
-
-interface AuthState {
-  user: User | null
-  token: string | null
-  refreshToken: string | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  error: string | null
-  requires2FA: boolean
-  tempToken: string | null
-}
+import { apiCall, apiCallFormData } from '@/utils/api'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -26,11 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => isInitialized.value && !!token.value && !!user.value)
-  const userRole = computed(() => user.value?.role || 'user')
-  const isAdmin = computed(() => userRole.value === 'admin')
-
-  // API Base URL
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+  const userRole = computed(() => 'user') // Por ahora sin roles
+  const isAdmin = computed(() => false) // Por ahora sin roles
 
   // Actions
   async function login(credentials: LoginCredentials) {
@@ -39,19 +26,18 @@ export const useAuthStore = defineStore('auth', () => {
     requires2FA.value = false
 
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
+      const formData = new URLSearchParams({
+        username: credentials.email,
+        password: credentials.password
       })
 
-      const data: AuthResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error de autenticación')
+      const result = await apiCallFormData('/api/auth/login', formData)
+      
+      if (result.error) {
+        throw new Error(result.error)
       }
+
+      const data = result.data as AuthResponse
 
       if (data.requires_2fa) {
         requires2FA.value = true
@@ -61,6 +47,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Login exitoso sin 2FA
       await setAuthData(data)
+      // Obtener datos del usuario autenticado
+      await getCurrentUser()
       return { success: true, requires2FA: false }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Error de conexión'
@@ -75,21 +63,19 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await fetch(`${API_BASE}/auth/verify-2fa`, {
+      const result = await apiCall('/api/auth/verify-2fa', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${tempToken.value}`,
         },
         body: JSON.stringify(twoFactorData),
       })
 
-      const data: AuthResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Código de verificación inválido')
+      if (result.error) {
+        throw new Error(result.error)
       }
 
+      const data = result.data as AuthResponse
       await setAuthData(data)
       requires2FA.value = false
       tempToken.value = null
@@ -110,22 +96,27 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { confirmPassword, acceptTerms, ...registerPayload } = registerData
 
-      const response = await fetch(`${API_BASE}/auth/register`, {
+      const result = await apiCall('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registerPayload),
+        body: JSON.stringify({
+          username: registerPayload.username,
+          email: registerPayload.email,
+          password: registerPayload.password,
+          full_name: registerPayload.full_name || null
+        }),
       })
 
-      const data: AuthResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Error en el registro')
+      if (result.error) {
+        throw new Error(result.error)
       }
 
+      const data = result.data as AuthResponse
+      
       // Auto login after successful registration
-      await setAuthData(data)
+      if (data.access_token) {
+        await setAuthData(data)
+        await getCurrentUser()
+      }
       return { success: true }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Error de registro'
@@ -140,7 +131,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       if (token.value) {
-        await fetch(`${API_BASE}/auth/logout`, {
+        await apiCall('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token.value}`,
@@ -148,37 +139,36 @@ export const useAuthStore = defineStore('auth', () => {
         })
       }
     } catch (err) {
-      console.error('Error al cerrar sesión:', err)
+      console.error('Error en logout:', err)
     } finally {
       clearAuthData()
       isLoading.value = false
     }
   }
 
-  async function refreshAccessToken() {
+  async function refreshAccessToken(): Promise<boolean> {
     if (!refreshToken.value) {
       clearAuthData()
       return false
     }
 
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const result = await apiCall('/api/auth/refresh', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${refreshToken.value}`,
         },
-        body: JSON.stringify({ refresh_token: refreshToken.value }),
       })
 
-      const data: AuthResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error('Token de actualización inválido')
+      if (result.error) {
+        clearAuthData()
+        return false
       }
 
+      const data = result.data as AuthResponse
       token.value = data.access_token
       localStorage.setItem('token', data.access_token)
-
+      
       if (data.refresh_token) {
         refreshToken.value = data.refresh_token
         localStorage.setItem('refreshToken', data.refresh_token)
@@ -186,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (err) {
-      console.error('Error al actualizar token:', err)
+      console.error('Error refreshing token:', err)
       clearAuthData()
       return false
     }
@@ -196,23 +186,22 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return null
 
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
+      const result = await apiCall('/api/users/me', {
         headers: {
           'Authorization': `Bearer ${token.value}`,
         },
       })
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          const refreshed = await refreshAccessToken()
-          if (refreshed) {
-            return getCurrentUser()
-          }
+      if (result.error) {
+        // Try to refresh token if unauthorized
+        const refreshed = await refreshAccessToken()
+        if (refreshed) {
+          return getCurrentUser()
         }
-        throw new Error('Error al obtener datos del usuario')
+        throw new Error(result.error)
       }
 
-      const userData: User = await response.json()
+      const userData = result.data as User
       user.value = userData
       return userData
     } catch (err) {
@@ -224,12 +213,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setAuthData(data: AuthResponse) {
     token.value = data.access_token
-    refreshToken.value = data.refresh_token
-    user.value = data.user
+    if (data.refresh_token) {
+      refreshToken.value = data.refresh_token
+      localStorage.setItem('refreshToken', data.refresh_token)
+    }
+    if (data.user) {
+      user.value = data.user
+      localStorage.setItem('user', JSON.stringify(data.user))
+    }
 
     localStorage.setItem('token', data.access_token)
-    localStorage.setItem('refreshToken', data.refresh_token)
-    localStorage.setItem('user', JSON.stringify(data.user))
   }
 
   function clearAuthData() {
@@ -238,8 +231,6 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = null
     requires2FA.value = false
     tempToken.value = null
-    error.value = null
-
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
@@ -249,46 +240,51 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
-  // Initialize auth state from localStorage
-  function initializeAuth() {
+  async function initialize() {
+    isLoading.value = true
     try {
+      const storedToken = localStorage.getItem('token')
       const storedUser = localStorage.getItem('user')
-      if (storedUser && token.value) {
+
+      if (storedToken && storedUser) {
+        token.value = storedToken
         user.value = JSON.parse(storedUser)
+        // Verify token is still valid
+        await getCurrentUser()
       }
     } catch (err) {
-      console.error('Error inicializando autenticación:', err)
+      console.error('Error initializing auth:', err)
       clearAuthData()
     } finally {
       isInitialized.value = true
+      isLoading.value = false
     }
   }
 
-  // Ejecutar inicialización automáticamente al crear el store
-  initializeAuth()
-
   return {
     // State
-    user,
-    token,
-    isLoading,
-    error,
-    requires2FA,
-    isInitialized,
+    user: readonly(user),
+    token: readonly(token),
+    refreshToken: readonly(refreshToken),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
+    requires2FA: readonly(requires2FA),
+    tempToken: readonly(tempToken),
+    isInitialized: readonly(isInitialized),
+    
     // Getters
     isAuthenticated,
     userRole,
     isAdmin,
+    
     // Actions
     login,
-    register,
     verify2FA,
+    register,
     logout,
     refreshAccessToken,
     getCurrentUser,
     clearError,
-    initializeAuth,
+    initialize,
   }
 })
-
-// El store ya se inicializa automáticamente cuando se ejecuta initializeAuth() dentro de él

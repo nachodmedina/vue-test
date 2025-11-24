@@ -10,7 +10,7 @@ const authStore = useAuthStore()
 
 // Inicializar inmediatamente el store
 if (!authStore.isInitialized) {
-  authStore.initializeAuth()
+  authStore.initialize()
 }
 
 const isLoginPage = computed(() => {
@@ -71,7 +71,7 @@ onMounted(() => {
         
         <div class="user-menu">
           <span class="user-greeting">
-            Hola, {{ authStore.user?.firstName || 'Usuario' }}!
+            Hola, {{ authStore.user?.first_name || 'Usuario' }}!
           </span>
           <RouterLink to="/settings" class="settings-link">⚙️</RouterLink>
           <button @click="handleLogout" class="logout-button">
