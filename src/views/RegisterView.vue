@@ -211,22 +211,20 @@ const handleRegister = async () => {
     return
   }
 
-  try {
-    await authStore.register({
-      username: registerData.value.username,
-      email: registerData.value.email,
-      password: registerData.value.password,
-      full_name: registerData.value.full_name || undefined,
-      confirmPassword: registerData.value.confirmPassword,
-      acceptTerms: registerData.value.acceptTerms
-    })
-    
-    // Si el registro es exitoso, redirigir al dashboard
+  const result = await authStore.register({
+    username: registerData.value.username,
+    email: registerData.value.email,
+    password: registerData.value.password,
+    full_name: registerData.value.full_name || undefined,
+    confirmPassword: registerData.value.confirmPassword,
+    acceptTerms: registerData.value.acceptTerms
+  })
+  
+  // Solo redirigir si el registro fue exitoso
+  if (result.success) {
     router.push('/dashboard')
-  } catch (error) {
-    // Los errores se manejan en el store
-    console.error('Registration failed:', error)
   }
+  // Si falla, el error ya está en authStore.error y se mostrará en el template
 }
 
 // Función para inicializar el efecto Matrix
